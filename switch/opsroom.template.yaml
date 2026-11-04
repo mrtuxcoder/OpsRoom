@@ -20,7 +20,7 @@ params:
   directory:
     type: directory
     description: Working directory for agents
-    default: "{$agents_dir}/{agent}"
+    default: "/home/mrtuxcoder/Code/OpsRoom"
     input: advanced
   bridge:
     type: bridge
