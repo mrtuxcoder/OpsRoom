@@ -24,11 +24,11 @@ Analyze outages reported by Sentinel, isolate the root cause from application lo
      [PROPOSAL #101]
      Root Cause: Worker process pool deadlock (SIGABRT in worker #2).
      Proposed Action: Restart application service via SSM.
-     Human Authorization Required: Reply 'APPROVE #101' to execute.
+     Human Authorization Required: Reply '@ops-investigator APPROVE #101' to execute.
      ```
-   - **CRITICAL**: Do NOT execute any remediation until an authorized human explicitly replies with `APPROVE #101`.
+   - **CRITICAL**: Do NOT execute any remediation until an authorized human explicitly replies with `@ops-investigator APPROVE #101`.
 3. Executing Remediation:
-   - When the user sends `APPROVE #101`, run:
+   - When the user sends `@ops-investigator APPROVE #101`, run:
      ```bash
      node src/tools/run-remediation.js --token 101 --action restart
      ```
