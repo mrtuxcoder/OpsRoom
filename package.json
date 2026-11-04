@@ -1,0 +1,31 @@
+{
+  "name": "opsroom",
+  "version": "1.0.0",
+  "description": "OpsRoom: Collaborative AI-powered AWS Incident Response with Switch & Antigravity",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start:mock": "node src/mock/server.js",
+    "chaos": "node src/mock/chaos.js crash",
+    "chaos:recover": "node src/mock/chaos.js recover",
+    "check:health": "node src/tools/check-health.js",
+    "inspect:logs": "node src/tools/inspect-logs.js",
+    "remediate": "node src/tools/run-remediation.js",
+    "report": "node src/tools/generate-report.js"
+  },
+  "keywords": [
+    "switch",
+    "antigravity",
+    "devops",
+    "incident-response",
+    "aws",
+    "sre",
+    "telegram"
+  ],
+  "author": "OpsRoom Team",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
