@@ -5,8 +5,12 @@ version: 1
 params:
   team:
     type: string
-    description: Prefix for room and agent names (e.g., prod, guidra)
+    description: Prefix for agent names (e.g., ops, guidra)
     default: ops
+  room:
+    type: room
+    label: Operations Room
+    description: Select the adopted Telegram chat (e.g. guidra-prod-ops)
   provider:
     type: provider
     description: Which coding agent backs both agents
@@ -22,10 +26,6 @@ params:
     description: Working directory for agents
     default: "/home/mrtuxcoder/Code/OpsRoom"
     input: advanced
-  bridge:
-    type: bridge
-    description: Chat bridge where the room is mirrored (Telegram / Slack)
-    default: [$first]
 
 agents:
   - name: "{team}-sentinel"
@@ -34,6 +34,7 @@ agents:
     provider: "{provider}"
     location: "{location}"
     directory: "{directory}"
+    join: ["{room}"]
     instructions: |
       You are Sentinel, the Infrastructure Telemetry & Monitoring Agent in OpsRoom.
       Your responsibility is to monitor service health, detect outages, and alert the room.
@@ -54,6 +55,7 @@ agents:
     provider: "{provider}"
     location: "{location}"
     directory: "{directory}"
+    join: ["{room}"]
     instructions: |
       You are Investigator, the Incident Diagnostic & Remediation Agent in OpsRoom.
       Your responsibility is to analyze incidents handed off by Sentinel and execute safe, authorized remediation.
@@ -69,20 +71,3 @@ agents:
          Tool call: `node src/tools/run-remediation.js --token <TOKEN> --action restart`.
       6. Once remediation is executed, notify `@{team}-sentinel` to run verification checks.
       7. Once recovery is confirmed, run `node src/tools/generate-report.js` to compile the official Post-Mortem markdown report.
-
-room:
-  name: "{team}-operations"
-  description: Collaborative incident response room for {team} infrastructure
-  bridge: "{bridge}"
-  agents: ["{team}-sentinel", "{team}-investigator"]
-  users: ["{$creator}"]
-  instructions: |
-    # OpsRoom Operations Room Policy
-    - Sentinel monitors infrastructure health and reports alerts to the room.
-    - Investigator investigates incidents and formulates remediation proposals.
-    - Human Engineers ({$creator}) serve as the exclusive authorization gate for mutating operations.
-    - No destructive or restarting remediation may occur without explicit human approval token ('APPROVE #...').
-
-kickoff: |
-  @{team}-sentinel and @{team}-investigator: OpsRoom initialized.
-  Sentinel is active on telemetry watch. Investigator is standing by for incident handoffs.
