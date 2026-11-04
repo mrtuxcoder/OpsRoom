@@ -1,4 +1,4 @@
-.PHONY: install start-mock chaos recover health logs remediate report test-flow clean
+.PHONY: install start-mock chaos recover health logs remediate report test-flow watch clean
 
 install:
 	npm install
@@ -23,6 +23,9 @@ remediate:
 
 report:
 	npm run report
+
+watch:
+	npm run watch
 
 # Automated End-to-End Simulation Test
 test-flow:

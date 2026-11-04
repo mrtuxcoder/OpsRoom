@@ -90,6 +90,12 @@ You will see:
 7. Sentinel verifies recovery (`200 OK`, `42ms` latency).
 8. Investigator compiles the post-mortem report in `artifacts/`.
 
+### 3. Proactive Monitoring Watcher (Optional)
+To run Sentinel as an autonomous continuous watchdog daemon:
+```bash
+make watch    # checks target health every 5s and triggers instant alert on 502
+```
+
 ---
 
 ## 🛠️ Repository Structure
