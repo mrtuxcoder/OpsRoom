@@ -24,6 +24,16 @@ async function executeRemediation() {
     process.exit(1);
   }
 
+  const validToken = process.env.VALID_APPROVAL_TOKEN || '101';
+  if (token !== validToken) {
+    console.error(JSON.stringify({
+      status: 'REJECTED',
+      mode: isMock ? 'MOCK_AWS' : 'LIVE_AWS',
+      error: `SECURITY GATE: Invalid approval token [${token}]. Execution rejected. Valid human authorization token required.`
+    }, null, 2));
+    process.exit(1);
+  }
+
   console.log(`[REMEDIATION] Validating approval token: [${token}] for action [${action}] on ${TARGET_NAME}...`);
 
   if (isMock) {
