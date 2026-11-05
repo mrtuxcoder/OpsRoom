@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import { checkAlbHealth } from '../aws/alb.js';
+
 dotenv.config();
 
 const isMock = process.env.MOCK_AWS !== 'false';
@@ -39,13 +41,32 @@ async function checkHealth() {
     }
   } else {
     // Live AWS integration
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      mode: 'LIVE_AWS',
-      target: TARGET_NAME,
-      status: 'CHECKING_AWS_ALB',
-      message: 'AWS SDK integration active'
-    }, null, 2));
+    try {
+      const targetGroupArn = process.env.AWS_ALB_TARGET_GROUP_ARN;
+      const albStatus = await checkAlbHealth(targetGroupArn);
+
+      const output = {
+        timestamp: new Date().toISOString(),
+        mode: 'LIVE_AWS',
+        target: TARGET_NAME,
+        status: albStatus.status,
+        albTargetGroupHealth: albStatus.status,
+        totalTargets: albStatus.totalTargets,
+        unhealthyCount: albStatus.unhealthyCount,
+        targets: albStatus.targets
+      };
+
+      console.log(JSON.stringify(output, null, 2));
+      process.exit(output.status === 'HEALTHY' ? 0 : 2);
+    } catch (err) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        mode: 'LIVE_AWS',
+        status: 'ERROR',
+        error: err.message
+      }, null, 2));
+      process.exit(1);
+    }
   }
 }
 

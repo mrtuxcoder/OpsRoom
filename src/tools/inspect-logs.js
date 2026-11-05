@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import { fetchRecentLogs } from '../aws/logs.js';
+
 dotenv.config();
 
 const isMock = process.env.MOCK_AWS !== 'false';
@@ -15,6 +17,7 @@ async function inspectLogs() {
       
       const diagnosis = {
         timestamp: new Date().toISOString(),
+        mode: 'MOCK_AWS',
         target: TARGET_NAME,
         logStream: data.logStream,
         totalLogsRetrieved: data.logs.length,
@@ -29,15 +32,36 @@ async function inspectLogs() {
     } catch (err) {
       console.error(JSON.stringify({
         timestamp: new Date().toISOString(),
+        mode: 'MOCK_AWS',
         error: `Failed to fetch logs: ${err.message}`
       }, null, 2));
       process.exit(1);
     }
   } else {
-    console.log(JSON.stringify({
-      mode: 'LIVE_AWS',
-      message: 'Fetching CloudWatch log group /aws/guidra/production'
-    }, null, 2));
+    // Live AWS CloudWatch Logs integration
+    try {
+      const logGroupName = process.env.AWS_LOG_GROUP_NAME || `/aws/guidra/${TARGET_NAME}`;
+      const logData = await fetchRecentLogs(logGroupName);
+
+      const diagnosis = {
+        timestamp: new Date().toISOString(),
+        mode: 'LIVE_AWS',
+        target: TARGET_NAME,
+        logGroupName: logData.logGroupName,
+        totalLogsRetrieved: logData.totalEvents,
+        criticalErrors: logData.criticalErrors,
+        rootCauseSummary: logData.rootCauseSummary
+      };
+
+      console.log(JSON.stringify(diagnosis, null, 2));
+    } catch (err) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        mode: 'LIVE_AWS',
+        error: err.message
+      }, null, 2));
+      process.exit(1);
+    }
   }
 }
 
