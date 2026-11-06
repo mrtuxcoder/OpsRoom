@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import { checkAlbHealth } from '../aws/alb.js';
+
 dotenv.config();
 
 const TARGET_NAME = process.env.INCIDENT_TARGET_NAME || 'guidra-production';
@@ -45,49 +47,87 @@ async function notifyTelegram(messageText) {
 }
 
 async function pollHealth() {
-  try {
-    const [healthRes, metricsRes] = await Promise.all([
-      fetch(`${MOCK_URL}/health`),
-      fetch(`${MOCK_URL}/metrics`)
-    ]);
+  if (isMock) {
+    try {
+      const [healthRes, metricsRes] = await Promise.all([
+        fetch(`${MOCK_URL}/health`),
+        fetch(`${MOCK_URL}/metrics`)
+      ]);
 
-    const health = await healthRes.json();
-    const metrics = await metricsRes.json();
-    const currentState = health.status.toUpperCase();
+      const health = await healthRes.json();
+      const metrics = await metricsRes.json();
+      const currentState = health.status.toUpperCase();
 
-    if (currentState === 'HEALTHY') {
-      if (lastState !== 'HEALTHY') {
-        const recoveryMsg = `✅ *[SENTINEL RECOVERY CONFIRMATION]*\n\nTarget \`${TARGET_NAME}\` is verified *HEALTHY* (HTTP 200 OK).\n• Latency: \`${metrics.metrics.TargetResponseTime * 1000}ms\`\n• Error Count: \`${metrics.metrics.HTTPCode_Target_5XX_Count}\`\n• ALB Probes: Passing\n\nIncident resolved. Post-Mortem compilation authorized.`;
-        console.log(`\n========================================`);
-        console.log(`🟢 [RECOVERY] ${TARGET_NAME} is HEALTHY (200 OK)`);
-        console.log(`========================================\n`);
-        await notifyTelegram(recoveryMsg);
-        failureCount = 0;
+      if (currentState === 'HEALTHY') {
+        if (lastState !== 'HEALTHY') {
+          const recoveryMsg = `✅ *[SENTINEL RECOVERY CONFIRMATION]*\n\nTarget \`${TARGET_NAME}\` is verified *HEALTHY* (HTTP 200 OK).\n• Latency: \`${metrics.metrics.TargetResponseTime * 1000}ms\`\n• Error Count: \`${metrics.metrics.HTTPCode_Target_5XX_Count}\`\n• ALB Probes: Passing\n\nIncident resolved. Post-Mortem compilation authorized.`;
+          console.log(`\n========================================`);
+          console.log(`🟢 [RECOVERY] ${TARGET_NAME} is HEALTHY (200 OK)`);
+          console.log(`========================================\n`);
+          await notifyTelegram(recoveryMsg);
+          failureCount = 0;
+        } else {
+          process.stdout.write(`\r[${new Date().toLocaleTimeString()}] 🟢 Sentinel Heartbeat: ${TARGET_NAME} HEALTHY (200 OK) | Latency: 42ms`);
+        }
+        lastState = 'HEALTHY';
       } else {
-        process.stdout.write(`\r[${new Date().toLocaleTimeString()}] 🟢 Sentinel Heartbeat: ${TARGET_NAME} HEALTHY (200 OK) | Latency: 42ms`);
-      }
-      lastState = 'HEALTHY';
-    } else {
-      failureCount++;
-      if (lastState !== 'UNHEALTHY') {
-        const alertMsg = `🚨 *[SENTINEL INCIDENT ALERT]*\n\nTarget \`${TARGET_NAME}\` has failed health checks!\n\n• *Status:* \`${health.statusCode} ${health.error || 'UNHEALTHY'}\`\n• *CPU Utilization:* \`${metrics.metrics.CPUUtilization}%\`\n• *5xx Errors:* \`${metrics.metrics.HTTPCode_Target_5XX_Count}\`\n• *ALB Target Group:* \`UNHEALTHY\`\n\n⚠️ Handoff: Alerting @ops-investigator to triage logs and isolate root cause.`;
-        
-        console.log(`\n\n========================================`);
-        console.log(`🚨 [INCIDENT DETECTED] ${TARGET_NAME} is UNHEALTHY (${health.statusCode})!`);
-        console.log(`Error: ${health.error}`);
-        console.log(`Handing off to @ops-investigator...`);
-        console.log(`========================================\n`);
+        failureCount++;
+        if (lastState !== 'UNHEALTHY') {
+          const alertMsg = `🚨 *[SENTINEL INCIDENT ALERT]*\n\nTarget \`${TARGET_NAME}\` has failed health checks!\n\n• *Status:* \`${health.statusCode} ${health.error || 'UNHEALTHY'}\`\n• *CPU Utilization:* \`${metrics.metrics.CPUUtilization}%\`\n• *5xx Errors:* \`${metrics.metrics.HTTPCode_Target_5XX_Count}\`\n• *ALB Target Group:* \`UNHEALTHY\`\n\n⚠️ Handoff: Alerting @ops-investigator to triage logs and isolate root cause.`;
+          
+          console.log(`\n\n========================================`);
+          console.log(`🚨 [INCIDENT DETECTED] ${TARGET_NAME} is UNHEALTHY (${health.statusCode})!`);
+          console.log(`Error: ${health.error}`);
+          console.log(`Handing off to @ops-investigator...`);
+          console.log(`========================================\n`);
 
-        await notifyTelegram(alertMsg);
-      } else {
-        process.stdout.write(`\r[${new Date().toLocaleTimeString()}] 🔴 Sentinel Alert: ${TARGET_NAME} STILL UNHEALTHY (${health.statusCode}) [Failures: ${failureCount}]`);
+          await notifyTelegram(alertMsg);
+        } else {
+          process.stdout.write(`\r[${new Date().toLocaleTimeString()}] 🔴 Sentinel Alert: ${TARGET_NAME} STILL UNHEALTHY (${health.statusCode}) [Failures: ${failureCount}]`);
+        }
+        lastState = 'UNHEALTHY';
       }
-      lastState = 'UNHEALTHY';
+    } catch (err) {
+      if (lastState !== 'UNREACHABLE') {
+        console.error(`\n⚠️  [SENTINEL] Could not reach target at ${MOCK_URL}: ${err.message}`);
+        lastState = 'UNREACHABLE';
+      }
     }
-  } catch (err) {
-    if (lastState !== 'UNREACHABLE') {
-      console.error(`\n⚠️  [SENTINEL] Could not reach target at ${MOCK_URL}: ${err.message}`);
-      lastState = 'UNREACHABLE';
+  } else {
+    // Live AWS ALB Polling
+    try {
+      const albStatus = await checkAlbHealth(process.env.AWS_ALB_TARGET_GROUP_ARN);
+      if (albStatus.status === 'HEALTHY') {
+        if (lastState !== 'HEALTHY') {
+          const recoveryMsg = `✅ *[SENTINEL RECOVERY CONFIRMATION]*\n\nTarget \`${TARGET_NAME}\` is verified *HEALTHY* on AWS ALB.\n• Total Targets: \`${albStatus.totalTargets}\`\n• Unhealthy Targets: \`${albStatus.unhealthyCount}\`\n\nIncident resolved. Post-Mortem compilation authorized.`;
+          console.log(`\n========================================`);
+          console.log(`🟢 [LIVE AWS RECOVERY] ${TARGET_NAME} is HEALTHY`);
+          console.log(`========================================\n`);
+          await notifyTelegram(recoveryMsg);
+          failureCount = 0;
+        } else {
+          process.stdout.write(`\r[${new Date().toLocaleTimeString()}] 🟢 Sentinel Heartbeat: ${TARGET_NAME} HEALTHY (AWS ALB)`);
+        }
+        lastState = 'HEALTHY';
+      } else {
+        failureCount++;
+        if (lastState !== 'UNHEALTHY') {
+          const alertMsg = `🚨 *[SENTINEL INCIDENT ALERT - LIVE AWS]*\n\nTarget \`${TARGET_NAME}\` has failed ALB health checks!\n\n• *Status:* \`UNHEALTHY\`\n• *Unhealthy Count:* \`${albStatus.unhealthyCount} / ${albStatus.totalTargets}\`\n\n⚠️ Handoff: Alerting @ops-investigator to triage CloudWatch logs and isolate root cause.`;
+          console.log(`\n\n========================================`);
+          console.log(`🚨 [LIVE AWS INCIDENT DETECTED] ${TARGET_NAME} is UNHEALTHY!`);
+          console.log(`Handing off to @ops-investigator...`);
+          console.log(`========================================\n`);
+          await notifyTelegram(alertMsg);
+        } else {
+          process.stdout.write(`\r[${new Date().toLocaleTimeString()}] 🔴 Sentinel Alert: ${TARGET_NAME} STILL UNHEALTHY on AWS ALB [Failures: ${failureCount}]`);
+        }
+        lastState = 'UNHEALTHY';
+      }
+    } catch (err) {
+      if (lastState !== 'UNREACHABLE') {
+        console.error(`\n⚠️  [SENTINEL] AWS ALB check error: ${err.message}`);
+        lastState = 'UNREACHABLE';
+      }
     }
   }
 }

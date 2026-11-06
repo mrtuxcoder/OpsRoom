@@ -1,17 +1,22 @@
 # OpsRoom: Collaborative Multi-Agent AWS Incident Response with Switch & Antigravity
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Hackathon](https://img.shields.io/badge/WeMakeDevs-Flip_the_Switch-orange.svg)](https://www.wemakedevs.org/hackathons/switch)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-green.svg)](https://nodejs.org)
 
 > **OpsRoom** transforms your team's chat application (Telegram / Slack) into a collaborative incident response war-room. Infrastructure monitoring agents (**Sentinel**) and incident resolution agents (**Investigator**) work alongside human engineers to detect AWS outages, diagnose root causes, and safely execute approved remediation.
 
+## 📺 Demo Video
+[opsroom-demo.mp4](docs/media/opsroom-demo.mp4)
+
+*Animated preview GIF:*  
+![Demo preview](docs/media/demo-preview.gif)
+
 ---
 
-## 🏆 Project Overview & Hackathon Alignment
+## 🏆 Project Overview
 
-- **Track:** Track 01 — Best Business Workflow ($2,000 Cash Prize)
-- **Target Platform:** Switch + Telegram + Antigravity
+- **Track:** Best Business Workflow
+- **Platform:** Switch + Telegram + Antigravity
 - **Core Problem:** On-call engineer alert fatigue, manual AWS console context switching, and the safety risks of unmonitored autonomous AI agents.
 - **The Solution:** Governed multi-agent collaboration inside a Switch chat room with strict human-in-the-loop authorization boundaries.
 

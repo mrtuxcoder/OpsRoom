@@ -7,3 +7,4 @@ yarn-error.log*
 .DS_Store
 *.draft.md
 docs/drafts/
+docs/media/*.mp4
