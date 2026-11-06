@@ -6,10 +6,12 @@
 > **OpsRoom** transforms your team's chat application (Telegram / Slack) into a collaborative incident response war-room. Infrastructure monitoring agents (**Sentinel**) and incident resolution agents (**Investigator**) work alongside human engineers to detect AWS outages, diagnose root causes, and safely execute approved remediation.
 
 ## 📺 Demo Video
+
 [![OpsRoom Demo](https://img.youtube.com/vi/1SA2d8gol98/maxresdefault.jpg)](https://youtu.be/1SA2d8gol98)
 
----
+**Title:** OpsRoom Demo – Collaborative AWS Incident Response with Switch
 
+**Description:** This video showcases a mock sandbox simulation of OpsRoom, demonstrating how agents Sentinel and Investigator collaborate in a Switch chat room to detect and remediate a simulated AWS ALB failure. The demo uses mock AWS resources; the live mode requires proper AWS credentials and IAM permissions.
 ## 🏆 Project Overview
 
 - **Track:** Best Business Workflow
