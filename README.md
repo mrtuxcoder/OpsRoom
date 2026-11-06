@@ -86,9 +86,10 @@ cp .env.example .env
 ```
 
 ### 3. Run the Full Incident Lifecycle Test
-In one terminal, start the target service:
+In one terminal, start the target service (via Node or Docker):
 ```bash
 npm run start:mock
+# Or run as a container: docker compose up -d
 ```
 
 In a second terminal, execute the end-to-end incident response flow:
@@ -182,6 +183,8 @@ Attach the following minimal policy to your IAM User or Service Account. Replace
 
 ```
 .
+├── Dockerfile                   # Containerized target service for zero-dependency mock testing
+├── docker-compose.yml           # One-command target sandbox setup (port 8080)
 ├── Makefile                     # 1-command targets: install, demo, chaos, test-flow
 ├── package.json                 # Node.js ESM configuration
 ├── .env.example                 # Environment variables (AWS & Mock parameters)
@@ -204,6 +207,25 @@ Attach the following minimal policy to your IAM User or Service Account. Replace
 │       └── generate-report.js  # Incident post-mortem generator
 └── artifacts/                  # Generated incident post-mortem markdown artifacts
 ```
+
+---
+
+## 🐳 Container Architecture: Why Docker is Included
+
+OpsRoom incorporates Docker for two key architectural reasons:
+
+1. **Zero-Friction Clean-Room Evaluation (Mock Sandbox):**
+   * The included `Dockerfile` and `docker-compose.yml` package the simulated target service (`opsroom-guidra-prod` on `:8080`).
+   * Evaluators can spin up the full sandbox with a single `docker compose up -d` without needing local Node version managers or worrying about host OS dependency conflicts.
+
+2. **Container-Aware SSM Production Remediation:**
+   * In modern AWS production architectures, EC2 workloads run inside Docker containers or Compose stacks rather than raw host processes.
+   * Rather than performing a blunt and disruptive VM reboot, Investigator’s SSM remediation payload ([`src/aws/ssm.js`](file:///home/mrtuxcoder/Code/OpsRoom/src/aws/ssm.js)) is **container-aware**:
+     ```bash
+     # Investigator inspects containers and gracefully restarts the degraded service:
+     docker restart <serviceName> || systemctl restart <serviceName> || docker compose restart
+     ```
+   * This provides non-destructive, surgical recovery in seconds while keeping the parent EC2 host and adjacent services online.
 
 ---
 
