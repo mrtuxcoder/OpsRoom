@@ -9,13 +9,13 @@
 
 [![OpsRoom Demo](https://img.youtube.com/vi/1SA2d8gol98/maxresdefault.jpg)](https://youtu.be/1SA2d8gol98)
 
-**Title:** OpsRoom Demo – Collaborative AWS Incident Response with Switch
+*Watch the end-to-end incident response lifecycle in Switch: automated detection, log diagnosis, human authorization, and container-aware remediation (demonstrated in the sandboxed mock environment).*
 
-**Description:** This video showcases a mock sandbox simulation of OpsRoom, demonstrating how agents Sentinel and Investigator collaborate in a Switch chat room to detect and remediate a simulated AWS ALB failure. The demo uses mock AWS resources; the live mode requires proper AWS credentials and IAM permissions.
-## 🏆 Project Overview
+---
 
-- **Track:** Best Business Workflow
-- **Platform:** Switch + Telegram + Antigravity
+## 💡 System Architecture
+
+- **Stack:** Switch Core + Telegram + Antigravity (Gemini) + AWS SDK v3
 - **Core Problem:** On-call engineer alert fatigue, manual AWS console context switching, and the safety risks of unmonitored autonomous AI agents.
 - **The Solution:** Governed multi-agent collaboration inside a Switch chat room with strict human-in-the-loop authorization boundaries.
 
@@ -172,7 +172,7 @@ Attach the following minimal policy to your IAM User or Service Account. Replace
 ### Static Access Keys vs. IAM Role
 
 * **Why Static Credentials (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`):**  
-  In local development, hackathon evaluations, or external war-room orchestrators running outside AWS (e.g., local workstation, external CI/CD, or non-AWS hosted bot), AWS static access keys provide immediate, environment-agnostic connectivity without requiring AWS VPC peering or direct instance attachment.
+  In local development, testing environments, or external war-room orchestrators running outside AWS (e.g., local workstation, external CI/CD runners, or non-AWS hosted bot nodes), AWS static access keys provide immediate, environment-agnostic connectivity without requiring AWS VPC peering or direct instance attachment.
 * **Production Deployment via IAM Role:**  
   If you deploy OpsRoom inside AWS (e.g., on an EC2 instance, ECS task, or EKS pod with IRSA), **leave `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` blank** in `.env`. The AWS SDK v3 will automatically resolve ambient credentials from the instance profile or task execution role using the IAM policy above.
 
@@ -214,9 +214,9 @@ Attach the following minimal policy to your IAM User or Service Account. Replace
 
 OpsRoom incorporates Docker for two key architectural reasons:
 
-1. **Zero-Friction Clean-Room Evaluation (Mock Sandbox):**
+1. **Zero-Friction Clean-Room Sandbox:**
    * The included `Dockerfile` and `docker-compose.yml` package the simulated target service (`opsroom-guidra-prod` on `:8080`).
-   * Evaluators can spin up the full sandbox with a single `docker compose up -d` without needing local Node version managers or worrying about host OS dependency conflicts.
+   * Developers and teams can spin up the full sandbox with a single `docker compose up -d` without needing local Node version managers or worrying about host OS dependency conflicts.
 
 2. **Container-Aware SSM Production Remediation:**
    * In modern AWS production architectures, EC2 workloads run inside Docker containers or Compose stacks rather than raw host processes.
