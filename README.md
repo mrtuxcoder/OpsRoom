@@ -84,7 +84,8 @@ Copy the example and fill in required values:
 cp .env.example .env
 # Edit .env with your values (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, AWS_ALB_TARGET_GROUP_ARN, MOCK_AWS)
 ```
-### 2. Run the Full Incident Lifecycle Test
+
+### 3. Run the Full Incident Lifecycle Test
 In one terminal, start the target service:
 ```bash
 npm run start:mock
@@ -105,13 +106,77 @@ You will see:
 7. Sentinel verifies recovery (`200 OK`, `42ms` latency).
 8. Investigator compiles the post-mortem report in `artifacts/`.
 
-### 3. Proactive Monitoring Watcher (Optional)
+### 4. Proactive Monitoring Watcher (Optional)
 To run Sentinel as an autonomous continuous watchdog daemon:
 ```bash
 make watch    # checks target health every 5s and triggers instant alert on 502
 ```
 
 ---
+
+## 🔐 AWS Permissions & Least-Privilege IAM Policy
+
+> [!IMPORTANT]
+> **Never use AWS root account keys or full AdministratorAccess.** OpsRoom adheres strictly to the **Principle of Least Privilege (PoLP)**. The bot requires access only to the specific Target Group, Log Group, and EC2 instance being managed.
+
+### What the Bot Demands (Live AWS Mode)
+
+When running in live mode (`MOCK_AWS=false`), OpsRoom uses exactly **3 AWS SDK operations** across its toolchain:
+
+| Agent / Tool | AWS Action | Permission Type | Purpose | Resource Scope |
+| :--- | :--- | :--- | :--- | :--- |
+| **Sentinel** (`check-health.js`) | `elasticloadbalancing:DescribeTargetHealth` | Read-Only | Queries ALB Target Group to check healthy/unhealthy container endpoints | Target Group ARN |
+| **Investigator** (`inspect-logs.js`) | `logs:FilterLogEvents` | Read-Only | Queries recent crash stack traces, OOM, and 502 errors | CloudWatch Log Group ARN |
+| **Investigator** (`run-remediation.js`) | `ssm:SendCommand` | Mutating (Gated) | Dispatches `AWS-RunShellScript` to restart the failing container/systemd service | EC2 Instance ARN & SSM Document |
+
+### Minimal IAM Policy JSON
+
+Attach the following minimal policy to your IAM User or Service Account. Replace `<AWS_ACCOUNT_ID>`, `<REGION>`, `<TARGET_GROUP_NAME>`, `<LOG_GROUP_NAME>`, and `<EC2_INSTANCE_ID>` with your specific resource values:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OpsRoomAlbHealthCheck",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:DescribeTargetHealth"
+      ],
+      "Resource": "arn:aws:elasticloadbalancing:<REGION>:<AWS_ACCOUNT_ID>:targetgroup/<TARGET_GROUP_NAME>/*"
+    },
+    {
+      "Sid": "OpsRoomCloudWatchLogInspection",
+      "Effect": "Allow",
+      "Action": [
+        "logs:FilterLogEvents"
+      ],
+      "Resource": "arn:aws:logs:<REGION>:<AWS_ACCOUNT_ID>:log-group:<LOG_GROUP_NAME>:*"
+    },
+    {
+      "Sid": "OpsRoomSsmRemediation",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:SendCommand"
+      ],
+      "Resource": [
+        "arn:aws:ec2:<REGION>:<AWS_ACCOUNT_ID>:instance/<EC2_INSTANCE_ID>",
+        "arn:aws:ssm:<REGION>::document/AWS-RunShellScript"
+      ]
+    }
+  ]
+}
+```
+
+### Static Access Keys vs. IAM Role
+
+* **Why Static Credentials (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`):**  
+  In local development, hackathon evaluations, or external war-room orchestrators running outside AWS (e.g., local workstation, external CI/CD, or non-AWS hosted bot), AWS static access keys provide immediate, environment-agnostic connectivity without requiring AWS VPC peering or direct instance attachment.
+* **Production Deployment via IAM Role:**  
+  If you deploy OpsRoom inside AWS (e.g., on an EC2 instance, ECS task, or EKS pod with IRSA), **leave `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` blank** in `.env`. The AWS SDK v3 will automatically resolve ambient credentials from the instance profile or task execution role using the IAM policy above.
+
+---
+
 
 ## 🛠️ Repository Structure
 
