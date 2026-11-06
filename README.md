@@ -62,15 +62,26 @@ OpsRoom cannot function as a simple standalone Telegram bot or webhook:
 
 ## 🚀 60-Second Clean-Room Quickstart
 
-OpsRoom includes a built-in **Dual-Mode Engine**: test instantly with zero AWS costs or setup friction using the included Mock Sandbox, or toggle `MOCK_AWS=false` to target live AWS infrastructure.
+OpsRoom includes a built‑in **Dual‑Mode Engine**:
+
+* **Mock mode** (`MOCK_AWS=true` – default) runs a local Express server, costing nothing.
+* **Live mode** (`MOCK_AWS=false`) monitors a real AWS ALB using the ARN you set in `.env`.
+
+Toggle the flag in your `.env` file to switch between the two.
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/opsroom.git
-cd opsroom
+git clone https://github.com/mrtuxcoder/OpsRoom.git
+cd OpsRoom
 npm install
 ```
 
+### 2. Configure Environment
+Copy the example and fill in required values:
+```bash
+cp .env.example .env
+# Edit .env with your values (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, AWS_ALB_TARGET_GROUP_ARN, MOCK_AWS)
+```
 ### 2. Run the Full Incident Lifecycle Test
 In one terminal, start the target service:
 ```bash
